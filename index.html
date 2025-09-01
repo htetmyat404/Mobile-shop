@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>📱 Nearby Phone Shops</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+</head>
+<body>
+  <header>
+    <h1>📱 Nearby Phone Shops</h1>
+    <div id="search">
+      <input type="text" id="searchInput" placeholder="🔍 Search shop name...">
+      <button onclick="searchShop()">Search</button>
+    </div>
+  </header>
+
+  <div id="map"></div>
+  <p id="message"></p>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
