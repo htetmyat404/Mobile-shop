@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lottery Tricks AI Prediction (99% Professional)</title>
+  <title>Lottery Tricks AI Prediction (Professional)</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -27,9 +27,9 @@
     .premium-btn{background:#ffd700; color:#000;}
     .free-btn{background:#4c9aff; color:#000;}
     #warningBox { background:#330000; color:#ff5555; padding:10px; border-radius:8px; margin-top:10px; display:none;}
-    .level-high {color:#00ff88; font-weight:bold;}  
-    .level-medium {color:#ffd700; font-weight:bold;} 
-    .level-low {color:#ff69b4; font-weight:bold;}    
+    .level-high {color:#00ff88; font-weight:bold;}   /* Green */
+    .level-medium {color:#ffd700; font-weight:bold;} /* Yellow */
+    .level-low {color:#ff69b4; font-weight:bold;}    /* Pink */
   </style>
 </head>
 <body>
@@ -51,8 +51,8 @@
   </div>
 
   <div id="premiumViewerPage" class="container hidden">
-    <h2 class="title">Premium AI Prediction (99% Professional)</h2>
-    <p class="subtitle">Advanced AI-powered prediction (last 3000 records)</p>
+    <h2 class="title">Premium AI Prediction (Professional)</h2>
+    <p class="subtitle">Advanced AI-powered prediction (using last 3000 records)</p>
     <div id="nextBox-premium"></div>
     <div id="warningBox"></div>
     <table>
@@ -136,50 +136,34 @@
     });
   }
 
-  // --- 99% Professional Prediction ---
+  // --- Advanced Premium Prediction (3000 history) ---
   function advancedPrediction(history){
-    const lastData = history.slice(0,3000);
+    const lastData = history.slice(0,3000); // last 3000 records
     const digitCounts = Array(10).fill(0);
-    const bigCounts = Array(10).fill(0);
-    const smallCounts = Array(10).fill(0);
-
     lastData.forEach(r=>{
       const d = lastDigit(r.number);
       digitCounts[d]++;
-      if(r.actual==="BIG") bigCounts[d]++;
-      else smallCounts[d]++;
     });
 
-    // Most likely digit & conditional probability
-    let maxProb = 0, likelyDigit=0;
-    for(let i=0;i<10;i++){
-      const total = bigCounts[i]+smallCounts[i];
-      if(total===0) continue;
-      const pBig = bigCounts[i]/total;
-      if(pBig>maxProb){ maxProb=pBig; likelyDigit=i; }
-    }
+    const likelyDigit = digitCounts.indexOf(Math.max(...digitCounts));
+    const bigCount = lastData.filter(r=>r.actual==="BIG").length;
+    const smallCount = lastData.length - bigCount;
 
-    // Streak detection
-    const last5 = lastData.slice(0,5).map(r=>r.actual);
-    let streakAdjustment = 0;
-    let prediction = "BIG";
-    if(last5.every(v=>"BIG"===v)){ prediction="SMALL"; streakAdjustment=0.3; }
-    else if(last5.every(v=>"SMALL"===v)){ prediction="BIG"; streakAdjustment=0.3; }
-    else {
-      const totalBig = lastData.filter(r=>r.actual==="BIG").length;
-      const totalSmall = lastData.length - totalBig;
-      prediction = totalBig>=totalSmall ? "BIG" : "SMALL";
-    }
+    let prediction = bigCount > smallCount ? "BIG" : "SMALL";
+    let confidence = Math.max(bigCount, smallCount) / lastData.length || 0.5;
 
-    const confidence = Math.min(100,(maxProb*0.7 + streakAdjustment*0.3)*100).toFixed(1);
+    const last10 = lastData.slice(0,10).map(r=>r.actual);
+    if(last10.every(v=>v==="BIG")) { prediction="SMALL"; confidence=0.95; }
+    else if(last10.every(v=>v==="SMALL")) { prediction="BIG"; confidence=0.95; }
+
     let levelClass="level-low", levelText="LOW";
-    if(confidence>=90){ levelClass="level-high"; levelText="HIGH"; }
-    else if(confidence>=70){ levelClass="level-medium"; levelText="MEDIUM"; }
+    if(confidence >= 0.9){ levelClass="level-high"; levelText="HIGH"; }
+    else if(confidence >= 0.7){ levelClass="level-medium"; levelText="MEDIUM"; }
 
     return {
       prediction,
-      confidence,
-      likely:[likelyDigit],
+      confidence:(confidence*100).toFixed(1),
+      likely: [likelyDigit],
       levelClass,
       levelText
     };
@@ -213,11 +197,13 @@
 
         if(result==="Lose") loseStreak++; else loseStreak=0;
 
-        // Warning
+        // Dynamic warning
         if(loseStreak>=3){
           warningBox.innerHTML="⚠️ Warning: Pattern is shifting! BigWin logic may be unstable.";
           warningBox.style.display="block";
-        } else { warningBox.style.display="none"; }
+        } else {
+          warningBox.style.display="none";
+        }
 
         const tr = document.createElement("tr");
         tr.innerHTML=`
@@ -234,6 +220,7 @@
 
       tbody.appendChild(fragment);
 
+      // Next Prediction
       const nextPred=advancedPrediction(history);
       document.getElementById("nextBox-premium").innerHTML=`
         <p><strong>Next Prediction:</strong> 
