@@ -2,24 +2,181 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>📱 Nearby Phone Shops</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+  <title>Lottery Tricks AI Prediction (Unlocked)</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <style>
+    body { background:#0a0a0f; color:#fff; font-family:sans-serif; margin:0; }
+    .container { max-width:1000px; margin:20px auto; padding:20px; background:#16161f; border-radius:16px; }
+    .hidden{display:none}
+    .title{font-size:1.6rem; font-weight:800; margin-bottom:12px; color:#ffd700;}
+    .subtitle{color:#aaa; margin-bottom:16px}
+    .pill{padding:6px 12px; border-radius:16px; font-weight:700; display:inline-block;}
+    .pill.big{background:#222; color:#ffa500;}
+    .pill.small{background:#222; color:#00aaff;}
+    .win{color:#00ff88; font-weight:700;}
+    .lose{color:#ff4757; font-weight:700;}
+    table{width:100%; border-collapse:collapse; margin-top:16px;}
+    th,td{padding:8px; border-bottom:1px solid #333;}
+    th{color:#aaa; text-align:left;}
+    .selection-btn{padding:20px; margin:10px; border-radius:12px; font-size:1.2rem; font-weight:700; cursor:pointer; border:none;}
+    .premium-btn{background:#ffd700; color:#000;}
+    .free-btn{background:#4c9aff; color:#000;}
+  </style>
 </head>
 <body>
-  <header>
-    <h1>📱 Nearby Phone Shops</h1>
-    <div id="search">
-      <input type="text" id="searchInput" placeholder="🔍 Search shop name...">
-      <button onclick="searchShop()">Search</button>
-    </div>
-  </header>
+  <div id="selectionScreen" class="container">
+    <h2 class="title">Lottery Tricks AI Prediction</h2>
+    <p class="subtitle">Select mode</p>
+    <button id="premiumBtn" class="selection-btn premium-btn"><i class="fas fa-crown"></i> Premium Prediction</button>
+    <button id="freeBtn" class="selection-btn free-btn"><i class="fas fa-bolt"></i> Free Prediction</button>
+  </div>
 
-  <div id="map"></div>
-  <p id="message"></p>
+  <div id="viewerPage" class="container hidden">
+    <h2 class="title">Free Prediction</h2>
+    <p class="subtitle">Pattern-based prediction (accuracy low)</p>
+    <div id="nextBox-free"></div>
+    <table>
+      <thead><tr><th>Issue</th><th>Number</th><th>Actual</th><th>Predicted</th><th>Result</th></tr></thead>
+      <tbody id="tbody-free"></tbody>
+    </table>
+  </div>
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="script.js"></script>
+  <div id="premiumViewerPage" class="container hidden">
+    <h2 class="title">Premium AI Prediction (Unlocked)</h2>
+    <p class="subtitle">Advanced AI-powered prediction</p>
+    <div id="nextBox-premium"></div>
+    <table>
+      <thead><tr><th>Issue</th><th>Number</th><th>Actual</th><th>Predicted</th><th>Result</th><th>Confidence</th></tr></thead>
+      <tbody id="tbody-premium"></tbody>
+    </table>
+  </div>
+
+<script>
+  // --- Firebase Config ---
+  const bigwinConfig = {
+    apiKey: "AIzaSyArgde3-Xn0boi6FO-ZfN6vPPMRdULPN24",
+    authDomain: "bigwin30-3d1e2.firebaseapp.com",
+    databaseURL: "https://bigwin30-3d1e2-default-rtdb.europe-west1.firebasedatabase.app/",
+    projectId: "bigwin30-3d1e2",
+    storageBucket: "bigwin30-3d1e2.appspot.com",
+    messagingSenderId: "214823361254",
+    appId: "1:214823361254:web:9b9f101f2134e2bc48f927"
+  };
+  const bigwinApp = firebase.initializeApp(bigwinConfig, "bigwin-main");
+  const bigwinDb = firebase.database(bigwinApp);
+
+  // --- Page Switch ---
+  const selectionScreen=document.getElementById("selectionScreen");
+  const viewerPage=document.getElementById("viewerPage");
+  const premiumViewerPage=document.getElementById("premiumViewerPage");
+
+  function showPage(page){
+    selectionScreen.classList.add("hidden");
+    viewerPage.classList.add("hidden");
+    premiumViewerPage.classList.add("hidden");
+    page.classList.remove("hidden");
+  }
+
+  document.getElementById("freeBtn").onclick=()=>{
+    showPage(viewerPage);
+    initFreeViewer();
+  };
+  document.getElementById("premiumBtn").onclick=()=>{
+    showPage(premiumViewerPage);
+    initPremiumViewer();
+  };
+
+  // --- Helper Functions ---
+  function lastDigit(num){ return parseInt(String(num).slice(-1))||0; }
+  function classify(num){ return lastDigit(num)>=5?"BIG":"SMALL"; }
+  function pillClass(v){ return "pill "+v.toLowerCase(); }
+
+  // --- Free Viewer ---
+  const PATTERN=["BIG","SMALL","BIG","SMALL","SMALL","BIG"];
+  function initFreeViewer(){
+    const tbody=document.getElementById("tbody-free");
+    tbody.innerHTML="";
+    bigwinDb.ref("bigwin/default").on("value",snap=>{
+      const v=snap.val();
+      if(!v||!v.list) return;
+      const list=Object.values(v.list).map(it=>({
+        issue:String(it.issueNumber||it.issue||""), number:it.number||0
+      }));
+      list.sort((a,b)=>b.issue-a.issue);
+      tbody.innerHTML="";
+      list.forEach((row)=>{
+        const actual=classify(row.number);
+        const idx=parseInt(row.issue)%PATTERN.length;
+        const predicted=PATTERN[idx];
+        const result=(predicted===actual)?"Win":"Lose";
+        tbody.innerHTML+=`
+          <tr>
+            <td>${row.issue}</td>
+            <td>${row.number}</td>
+            <td><span class="${pillClass(actual)}">${actual}</span></td>
+            <td><span class="${pillClass(predicted)}">${predicted}</span></td>
+            <td class="${result.toLowerCase()}">${result}</td>
+          </tr>`;
+      });
+    });
+  }
+
+  // --- Better Premium Prediction ---
+  function betterPrediction(history){
+    const last20=history.slice(0,20);
+    const bigCount=last20.filter(r=>r.actual==="BIG").length;
+    const smallCount=last20.length-bigCount;
+    let prediction=bigCount>smallCount?"SMALL":"BIG";
+    let confidence=Math.max(bigCount,smallCount)/last20.length||0.5;
+
+    const last5=last20.slice(0,5).map(r=>r.actual);
+    if(last5.every(v=>v==="BIG")){prediction="SMALL"; confidence=0.85;}
+    else if(last5.every(v=>v==="SMALL")){prediction="BIG"; confidence=0.85;}
+
+    return {prediction, confidence:(confidence*100).toFixed(1)};
+  }
+
+  function initPremiumViewer(){
+    const tbody=document.getElementById("tbody-premium");
+    tbody.innerHTML="";
+    bigwinDb.ref("bigwin/default").on("value",snap=>{
+      const v=snap.val();
+      if(!v||!v.list) return;
+      let list=Object.values(v.list).map(it=>({
+        issue:String(it.issueNumber||it.issue||""), 
+        number:it.number||0
+      }));
+      list.sort((a,b)=>b.issue-a.issue);
+
+      const history=list.map(r=>({issue:r.issue, number:r.number, actual:classify(r.number)}));
+      tbody.innerHTML="";
+
+      history.forEach((row,i)=>{
+        const pred=betterPrediction(history.slice(i+1));
+        const result=(pred.prediction===row.actual)?"Win":"Lose";
+        tbody.innerHTML+=`
+          <tr>
+            <td>${row.issue}</td>
+            <td>${row.number}</td>
+            <td><span class="${pillClass(row.actual)}">${row.actual}</span></td>
+            <td><span class="${pillClass(pred.prediction)}">${pred.prediction}</span></td>
+            <td class="${result.toLowerCase()}">${result}</td>
+            <td>${pred.confidence}%</td>
+          </tr>`;
+      });
+
+      const nextPred=betterPrediction(history);
+      document.getElementById("nextBox-premium").innerHTML=`
+        <p><strong>Next Prediction:</strong> 
+        <span class="pill ${nextPred.prediction.toLowerCase()}">${nextPred.prediction}</span>
+        (Confidence: ${nextPred.confidence}%)</p>`;
+    });
+  }
+</script>
 </body>
 </html>
