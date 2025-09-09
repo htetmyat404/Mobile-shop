@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lottery Tricks AI Prediction (Professional)</title>
+  <title>Lottery Tricks AI Prediction (Unlocked)</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -16,8 +16,8 @@
     .title{font-size:1.6rem; font-weight:800; margin-bottom:12px; color:#ffd700;}
     .subtitle{color:#aaa; margin-bottom:16px}
     .pill{padding:6px 12px; border-radius:16px; font-weight:700; display:inline-block;}
-    .pill.big{background:#222; color:#00ff88;}
-    .pill.small{background:#222; color:#ff4757;}
+    .pill.big{background:#222; color:#ffa500;}
+    .pill.small{background:#222; color:#00aaff;}
     .win{color:#00ff88; font-weight:700;}
     .lose{color:#ff4757; font-weight:700;}
     table{width:100%; border-collapse:collapse; margin-top:16px;}
@@ -51,8 +51,8 @@
   </div>
 
   <div id="premiumViewerPage" class="container hidden">
-    <h2 class="title">Premium AI Prediction (Professional)</h2>
-    <p class="subtitle">Advanced AI-powered prediction (using last 3000 records)</p>
+    <h2 class="title">Premium AI Prediction (Unlocked)</h2>
+    <p class="subtitle">Advanced AI-powered prediction (using last 2000 records)</p>
     <div id="nextBox-premium"></div>
     <div id="warningBox"></div>
     <table>
@@ -136,34 +136,48 @@
     });
   }
 
-  // --- Advanced Premium Prediction (3000 history) ---
+  // --- Advanced Premium Prediction (2000 history, Professional) ---
   function advancedPrediction(history){
-    const lastData = history.slice(0,3000); // last 3000 records
-    const digitCounts = Array(10).fill(0);
-    lastData.forEach(r=>{
-      const d = lastDigit(r.number);
-      digitCounts[d]++;
-    });
+    const lastData = history.slice(0,2000); // 2000 latest records
+    const total = lastData.length;
 
-    const likelyDigit = digitCounts.indexOf(Math.max(...digitCounts));
+    if(total === 0) return {prediction:"BIG", confidence:50, levelClass:"level-low", levelText:"LOW"};
+
+    // Overall ratio
     const bigCount = lastData.filter(r=>r.actual==="BIG").length;
-    const smallCount = lastData.length - bigCount;
+    const smallCount = total - bigCount;
 
-    let prediction = bigCount > smallCount ? "BIG" : "SMALL";
-    let confidence = Math.max(bigCount, smallCount) / lastData.length || 0.5;
+    // Sliding windows (50, 100, 200)
+    const win50 = lastData.slice(0,50);
+    const win100 = lastData.slice(0,100);
+    const win200 = lastData.slice(0,200);
 
-    const last10 = lastData.slice(0,10).map(r=>r.actual);
-    if(last10.every(v=>v==="BIG")) { prediction="SMALL"; confidence=0.95; }
-    else if(last10.every(v=>v==="SMALL")) { prediction="BIG"; confidence=0.95; }
+    function ratio(data){
+      let b = data.filter(r=>r.actual==="BIG").length;
+      return b/data.length;
+    }
 
+    const r50 = ratio(win50);
+    const r100 = ratio(win100);
+    const r200 = ratio(win200);
+    const rTotal = bigCount/total;
+
+    // Weighted average prediction
+    const weighted = (r50*0.4 + r100*0.3 + r200*0.2 + rTotal*0.1);
+    let prediction = weighted>=0.5 ? "BIG":"SMALL";
+
+    // Confidence = distance from 50%
+    let confidence = Math.abs(weighted-0.5)*2*100; 
+    if(confidence < 40) confidence += 10; // stabilize a bit
+
+    // Confidence Level
     let levelClass="level-low", levelText="LOW";
-    if(confidence >= 0.9){ levelClass="level-high"; levelText="HIGH"; }
-    else if(confidence >= 0.7){ levelClass="level-medium"; levelText="MEDIUM"; }
+    if(confidence >= 80){ levelClass="level-high"; levelText="HIGH"; }
+    else if(confidence >= 60){ levelClass="level-medium"; levelText="MEDIUM"; }
 
     return {
       prediction,
-      confidence:(confidence*100).toFixed(1),
-      likely: [likelyDigit],
+      confidence:confidence.toFixed(1),
       levelClass,
       levelText
     };
@@ -174,6 +188,9 @@
     const warningBox=document.getElementById("warningBox");
     tbody.innerHTML="";
     warningBox.style.display="none";
+
+    let warningOn=false;
+    let recoverCount=0;
 
     bigwinDb.ref("bigwin/default").on("value",snap=>{
       const v=snap.val();
@@ -188,46 +205,46 @@
       tbody.innerHTML="";
 
       let loseStreak=0;
-      const fragment = document.createDocumentFragment();
-
       history.forEach((row,i)=>{
         const pred=advancedPrediction(history.slice(i+1));
-        const predictedText=`${pred.prediction} (${pred.likely.join(",")})`;
         const result=(pred.prediction===row.actual)?"Win":"Lose";
-
-        if(result==="Lose") loseStreak++; else loseStreak=0;
-
-        // Dynamic warning
-        if(loseStreak>=3){
-          warningBox.innerHTML="⚠️ Warning: Pattern is shifting! BigWin logic may be unstable.";
-          warningBox.style.display="block";
+        
+        if(result==="Lose"){ 
+          loseStreak++; 
+          recoverCount=0;
         } else {
-          warningBox.style.display="none";
+          if(warningOn) recoverCount++;
+          loseStreak=0;
         }
 
-        const tr = document.createElement("tr");
-        tr.innerHTML=`
-          <td>${row.issue}</td>
-          <td>${row.number}</td>
-          <td><span class="${pillClass(row.actual)}">${row.actual}</span></td>
-          <td><span class="${pillClass(pred.prediction)}">${predictedText}</span></td>
-          <td class="${result.toLowerCase()}">${result}</td>
-          <td>${pred.confidence}%</td>
-          <td class="${pred.levelClass}">${pred.levelText}</td>
-        `;
-        fragment.appendChild(tr);
+        if(loseStreak>=3){ warningOn=true; recoverCount=0; }
+        if(warningOn && recoverCount>=2){ warningOn=false; }
+
+        tbody.innerHTML+=`
+          <tr>
+            <td>${row.issue}</td>
+            <td>${row.number}</td>
+            <td><span class="${pillClass(row.actual)}">${row.actual}</span></td>
+            <td><span class="${pillClass(pred.prediction)}">${pred.prediction}</span></td>
+            <td class="${result.toLowerCase()}">${result}</td>
+            <td>${pred.confidence}%</td>
+            <td class="${pred.levelClass}">${pred.levelText}</td>
+          </tr>`;
       });
 
-      tbody.appendChild(fragment);
+      if(warningOn){
+        warningBox.innerHTML="⚠️ Warning: Pattern is shifting! BigWin logic unstable.";
+        warningBox.style.display="block";
+      } else {
+        warningBox.style.display="none";
+      }
 
-      // Next Prediction
       const nextPred=advancedPrediction(history);
       document.getElementById("nextBox-premium").innerHTML=`
         <p><strong>Next Prediction:</strong> 
-        <span class="pill ${nextPred.prediction.toLowerCase()}">${nextPred.prediction} (${nextPred.likely.join(",")})</span>
+        <span class="pill ${nextPred.prediction.toLowerCase()}">${nextPred.prediction}</span>
         <span class="${nextPred.levelClass}">${nextPred.levelText}</span>
-        (Confidence: ${nextPred.confidence}%)
-        </p>`;
+        (Confidence: ${nextPred.confidence}%)</p>`;
     });
   }
 </script>
