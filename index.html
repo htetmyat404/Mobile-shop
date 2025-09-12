@@ -1,216 +1,24 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Premium AI Prediction — No Login</title>
-  <meta name="description" content="Premium WinGo/BigWin 30s BIG/SMALL prediction (no login / no timer)" />
-  <meta name="keywords" content="BigWin, WinGo, 30s, premium prediction, BIG SMALL, lottery, ai" />
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-
-  <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      background: #0a0a0f;
-      color: #e8e8f0;
-      margin: 0;
-      padding: 20px;
-    }
-    .container {
-      max-width: 1000px;
-      margin: auto;
-      background: linear-gradient(145deg, #1a1a26, #16161f);
-      border: 1px solid rgba(255, 215, 0, 0.3);
-      border-radius: 20px;
-      box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
-      padding: 24px;
-    }
-    h1 {
-      text-align: center;
-      font-size: 1.8rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, #ffd700, #ffed4e, #fff3a0);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td {
-      border-bottom: 1px solid #2a2a35;
-      padding: 10px;
-      text-align: center;
-    }
-    th { color: #a0a0b0; font-size: 13px; text-transform: uppercase; }
-    .pill {
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      font-weight: 700;
-    }
-    .big { background: rgba(255,165,0,0.2); color: #ffa500; }
-    .small { background: rgba(0,170,255,0.2); color: #00aaff; }
-    .win { color: #00ff88; font-weight: 700; }
-    .lose { color: #ff4757; font-weight: 700; }
-    .stat { margin-top: 12px; font-size: 0.95rem; color: #a0a0b0; }
-  </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Snake — GitHub Starter</title>
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <div class="container">
-    <h1><i class="fas fa-crown"></i> Premium AI Prediction</h1>
-    <p style="text-align:center; color:#aaa;">BigWin / WinGo 30s — BIG vs SMALL</p>
-
-    <div id="nextBox" style="margin:16px 0; text-align:center;">
-      <strong style="color:#ffd700;">
-        <i class="fas fa-clock"></i> Next Issue:
-      </strong>
-      <span id="nextIssue" style="color:#ffed4e; font-weight:700;"></span>
-      <br/>
-      <strong style="color:#ffd700;">
-        <i class="fas fa-brain"></i> AI Prediction:
-      </strong>
-      <span id="nextPred" class="pill"></span>
+  <main class="container">
+    <h1>Snake</h1>
+    <div class="scoreboard">
+      <span>Score: <strong id="score">0</strong></span>
+      <button id="btn-restart">Restart</button>
     </div>
-
-    <div class="stat" id="statLine"></div>
-
-    <table>
-      <thead>
-        <tr>
-          <th>Issue</th>
-          <th>Number</th>
-          <th>Actual</th>
-          <th>Predicted</th>
-          <th>Result</th>
-          <th>Confidence</th>
-        </tr>
-      </thead>
-      <tbody id="tbody">
-        <tr><td colspan="6" style="padding:20px; color:#70707a;">Loading premium AI data...</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <script>
-    // --- Firebase Config (same as premium) ---
-    const bigwinConfig = {
-      apiKey: "AIzaSyArgde3-Xn0boi6FO-ZfN6vPPMRdULPN24",
-      authDomain: "bigwin30-3d1e2.firebaseapp.com",
-      databaseURL: "https://bigwin30-3d1e2-default-rtdb.europe-west1.firebasedatabase.app/",
-      projectId: "bigwin30-3d1e2",
-      storageBucket: "bigwin30-3d1e2.appspot.com",
-      messagingSenderId: "214823361254",
-      appId: "1:214823361254:web:9b9f101f2134e2bc48f927"
-    };
-
-    const app = firebase.initializeApp(bigwinConfig);
-    const db = firebase.database(app);
-
-    const tbody = document.getElementById("tbody");
-    const nextIssueEl = document.getElementById("nextIssue");
-    const nextPredEl = document.getElementById("nextPred");
-    const statLine = document.getElementById("statLine");
-
-    const classify = (n) => (String(n).slice(-1) >= 5 ? "BIG" : "SMALL");
-    const pillClass = (v) => v === "BIG" ? "pill big" : "pill small";
-
-    function enhancedPrediction(history) {
-      const recent = history.slice(0, 12);
-      let prediction = "", confidence = "Low";
-
-      // Premium record based
-      const premiumResults = recent.filter(r => r.result === "Win");
-      if (premiumResults.length >= 3) {
-        prediction = premiumResults[0].predicted;
-        confidence = "Height";
-      }
-
-      // Pattern detection
-      if (!prediction && recent.length >= 4) {
-        const last4 = recent.slice(0,4).map(r => r.actual);
-        if (last4.every(v => v === last4[0])) {
-          prediction = last4[0] === "BIG" ? "SMALL" : "BIG";
-          confidence = "Medium";
-        }
-      }
-
-      // Heuristic
-      if (!prediction && recent.length >= 6) {
-        const bigCount = recent.slice(0,6).filter(v=>v.actual==="BIG").length;
-        if (bigCount <= 2) { prediction="BIG"; confidence="Medium"; }
-        else if (bigCount >= 4) { prediction="SMALL"; confidence="Medium"; }
-      }
-
-      if (!prediction) {
-        prediction = Math.random() > 0.5 ? "BIG":"SMALL";
-        confidence="Low";
-      }
-      return {prediction, confidence};
-    }
-
-    db.ref("bigwin/default").on("value", (snap)=>{
-      const v = snap.val();
-      if (!v) return;
-      const list = Array.isArray(v.list) ? v.list.filter(Boolean) : Object.values(v.list||{});
-      let rows = list.map(it => ({
-        issue: String(it.issueNumber || it.issue || "").trim(),
-        number: it.number || it.result || it.openNumber || ""
-      })).filter(it=>it.issue);
-
-      rows.sort((a,b)=> BigInt(b.issue) - BigInt(a.issue));
-
-      // Build history + prediction
-      let computed = [];
-      rows.forEach(r=>{
-        computed.push({
-          issue: r.issue,
-          number: r.number,
-          actual: classify(r.number),
-          predicted: "",
-          result: "",
-          confidence: ""
-        });
-      });
-
-      computed = computed.reverse().map((row,i,arr)=>{
-        const history = arr.slice(i+1).reverse();
-        const pred = enhancedPrediction(history);
-        const isWin = pred.prediction === row.actual;
-        return {...row, predicted: pred.prediction, result: isWin?"Win":"Lose", confidence: pred.confidence};
-      }).reverse();
-
-      // Render table
-      tbody.innerHTML="";
-      computed.forEach(r=>{
-        const tr=document.createElement("tr");
-        tr.innerHTML=`
-          <td>${r.issue}</td>
-          <td>${r.number}</td>
-          <td><span class=\"${pillClass(r.actual)}\">${r.actual}</span></td>
-          <td><span class=\"${pillClass(r.predicted)}\">${r.predicted}</span></td>
-          <td class=\"${r.result==='Win'?'win':'lose'}\">${r.result}</td>
-          <td>${r.confidence}</td>`;
-        tbody.appendChild(tr);
-      });
-
-      // Next issue prediction
-      const maxIssue = rows.reduce((m,it)=>BigInt(it.issue)>m?BigInt(it.issue):m,0n);
-      const nextIssue = (maxIssue+1n).toString();
-      const nextPred = enhancedPrediction(computed);
-      nextIssueEl.textContent = nextIssue;
-      nextPredEl.textContent = `${nextPred.prediction} (${nextPred.confidence})`;
-      nextPredEl.className = pillClass(nextPred.prediction);
-
-      const win = computed.filter(r=>r.result==="Win").length;
-      const total = computed.length;
-      statLine.innerHTML = `<i class='fas fa-crown'></i> Win: <span class='win'>${win}</span> | Lose: <span class='lose'>${total-win}</span> | Accuracy: ${(win/total*100).toFixed(1)}%`;
-    });
-  </script>
+    <canvas id="game" width="400" height="400" aria-label="Snake game canvas"></canvas>
+    <p class="hint">Use ← ↑ → ↓ or swipe. Works on mobile.</p>
+    <footer>
+      <small>Made for GitHub — fork & contribute!</small>
+    </footer>
+  </main>
+  <script src="js/game.js" defer></script>
 </body>
 </html>
