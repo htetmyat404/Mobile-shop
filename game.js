@@ -1,4 +1,4 @@
-// Basic Snake game — single file, readable and extendable.
+// Basic Snake game — single freadable and extendable.
 // Grid-based game. No external libs.
 
 (() => {
